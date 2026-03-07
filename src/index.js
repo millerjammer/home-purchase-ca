@@ -1,154 +1,160 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
+import './dark.css'
+import { Chart } from 'chart.js/auto'
 
-import Chart from 'chart.js/auto'
-
-const SALT_LIMIT = 10000
-const PROPERTY_TAX_CA = 0.0125
-const SBL_LTV = 0.5
-const YEARS = 30
+const slider = document.getElementById("homePrice")
+const sliderValue = document.getElementById("homePriceValue")
 
 let chart
 
-function inputs() {
-
-    return {
-
-        homePrice: Number(document.getElementById("homePrice").value),
-
-        securities: Number(document.getElementById("securitiesValue").value),
-
-        growth: Number(document.getElementById("securitiesGrowth").value) / 100,
-
-        mortgageRate: Number(document.getElementById("mortgageRate").value) / 100,
-
-        income: Number(document.getElementById("income").value),
-
-        incomePercent: Number(document.getElementById("incomePercent").value) / 100
-
-    }
-
-}
-
-function mortgagePayment(principal, rate, years) {
-
-    let r = rate / 12
-    let n = years * 12
-
-    return principal * (r * (1 + r) ** n) / ((1 + r) ** n - 1)
-
-}
-
-function simulateGrowth(start, growth) {
-
-    let v = start
-    let data = []
-
-    for (let i = 0; i < 30; i++) {
-
-        v = v * (1 + growth)
-        data.push(v)
-
-    }
-
-    return data
-
-}
-
-function updateChart(p) {
-
-    let before = simulateGrowth(p.securities, p.growth)
-
-    let after = simulateGrowth(p.securities, p.growth)
-
-    if (chart) chart.destroy()
-
-    chart = new Chart(
-
-        document.getElementById("securitiesChart"),
-
-        {
-
-            type: "line",
-
-            data: {
-
-                labels: Array.from({ length: 30 }, (_, i) => i + 1),
-
-                datasets: [
-                    {
-                        label: "Securities (No Purchase)",
-                        data: before
-                    },
-                    {
-                        label: "Securities (With SBL)",
-                        data: after
-                    }
-                ]
-
-            },
-
-            options: {
-                responsive: true
-            }
-
-        }
-
-    )
-
-}
-
 function calculate() {
 
-    let p = inputs()
+  const homePrice = Number(slider.value)
 
-    document.getElementById("incomePercentLabel").innerText =
-        document.getElementById("incomePercent").value + "%"
+  const portfolioEvent =
+    Number(document.getElementById("portfolioValue").value)
 
-    let propertyTax = p.homePrice * PROPERTY_TAX_CA
+  const growth =
+    Number(document.getElementById("growthRate").value) / 100
 
-    let sbl = Math.min(p.securities * SBL_LTV, p.homePrice * 0.2)
+  const sblRate =
+    Number(document.getElementById("sblRate").value) / 100
 
-    let mortgage = p.homePrice - sbl
 
-    let payment = mortgagePayment(mortgage, p.mortgageRate, YEARS)
+  const labels = []
 
-    let deductible = Math.min(propertyTax, SALT_LIMIT)
+  const baseline = []
+  const withLoan = []
+  const netWorth = []
 
-    document.getElementById("sblAmount").innerText =
-        "SBL Loan: $" + Math.round(sbl).toLocaleString()
 
-    document.getElementById("mortgageAmount").innerText =
-        "Mortgage: $" + Math.round(mortgage).toLocaleString()
+  // ---------- PRE EVENT (reverse compound)
 
-    document.getElementById("monthlyPayment").innerText =
-        "Monthly Payment: $" + Math.round(payment).toLocaleString()
+  let pBase = portfolioEvent
+  let pLoan = portfolioEvent
 
-    document.getElementById("taxDeduction").innerText =
-        "Deductible Tax (SALT): $" + Math.round(deductible).toLocaleString()
+  const preBase = []
+  const preLoan = []
 
-    updateChart(p)
+  for (let i = 0; i < 5; i++) {
 
+    pBase = pBase / (1 + growth)
+    pLoan = pLoan / (1 + growth)
+
+    preBase.unshift(pBase)
+    preLoan.unshift(pLoan)
+  }
+
+  for (let i = -5; i < 0; i++) {
+
+    labels.push(i)
+
+    baseline.push(preBase[i + 5])
+    withLoan.push(preLoan[i + 5])
+    netWorth.push(preLoan[i + 5]) // no house yet
+  }
+
+
+  // ---------- EVENT YEAR
+
+  labels.push(0)
+
+  baseline.push(portfolioEvent)
+  withLoan.push(portfolioEvent)
+  netWorth.push(portfolioEvent + homePrice)
+
+
+  // ---------- POST EVENT
+
+  let base = portfolioEvent
+  let loan = portfolioEvent
+
+  const interest = homePrice * sblRate
+
+  for (let year = 1; year <= 5; year++) {
+
+    base = base * (1 + growth)
+
+    const g = loan * growth
+    const net = g - interest
+
+    loan += net
+
+    labels.push(year)
+
+    baseline.push(base)
+    withLoan.push(loan)
+    netWorth.push(loan + homePrice)
+  }
+
+  return { labels, baseline, withLoan, netWorth }
 }
 
-function bind() {
 
-    document.querySelectorAll("input").forEach(el => {
-        el.addEventListener("input", calculate)
-    })
 
-    const slider = document.getElementById("homePriceSlider")
-    const box = document.getElementById("homePrice")
+function renderChart() {
 
-    slider.addEventListener("input", () => {
-        box.value = slider.value
-        calculate()
-    })
+  sliderValue.innerText =
+    Number(slider.value).toLocaleString()
 
-    box.addEventListener("input", () => {
-        slider.value = box.value
-    })
+  const result = calculate()
 
+  const ctx = document.getElementById("chart")
+
+  if (chart) chart.destroy()
+
+  chart = new Chart(ctx, {
+
+    type: "line",
+
+    data: {
+
+      labels: result.labels,
+
+      datasets: [
+
+        {
+          label: "Portfolio Baseline",
+          data: result.baseline,
+          borderWidth: 3
+        },
+
+        {
+          label: "Portfolio w/ SBL",
+          data: result.withLoan,
+          borderWidth: 3
+        },
+
+        {
+          label: "Net Worth (Portfolio + Home)",
+          data: result.netWorth,
+          borderWidth: 3
+        }
+
+      ]
+    },
+
+    options: {
+
+      responsive: true,
+
+      plugins: {
+        legend: {
+          labels: { color: "white" }
+        }
+      },
+
+      scales: {
+        x: { ticks: { color: "white" } },
+        y: { ticks: { color: "white" } }
+      }
+    }
+  })
 }
 
-bind()
-calculate()
+
+
+document.querySelectorAll("input")
+  .forEach(el => el.addEventListener("input", renderChart))
+
+renderChart()
