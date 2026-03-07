@@ -146,6 +146,7 @@ function renderPortfolioChart() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { labels: { color: 'white' } } },
             scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } }
         }
