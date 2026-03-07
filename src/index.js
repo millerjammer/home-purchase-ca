@@ -18,6 +18,8 @@ function calculate() {
     const mortgageRate = Number(document.getElementById("mortgageRate").value) / 100
     const propertyTaxRate = Number(document.getElementById("propertyTaxRate").value) / 100
     const sblFraction = Number(sliderSBL.value) / 100
+    const income = Number(document.getElementById("income").value)
+    const effectiveTaxRate = Number(document.getElementById("effectiveTaxRate").value) / 100
 
     // --- Loan Breakdown ---
     const SBL = homePrice * sblFraction
@@ -26,15 +28,33 @@ function calculate() {
 
     // Monthly mortgage calculation
     const monthlyPI = mortgage * (mortgageRate / 12) / (1 - Math.pow(1 + mortgageRate / 12, -mortgageTermMonths))
+    const monthlyInterest = mortgage * mortgageRate / 12
+    const monthlyPrincipal = monthlyPI - monthlyInterest
     const monthlyTax = homePrice * propertyTaxRate / 12
     const monthlyTotal = monthlyPI + monthlyTax
 
-    // Display in table
+    // Annualized
+    const annualPrincipal = monthlyPrincipal * 12
+    const annualInterest = monthlyInterest * 12
+    const annualTax = monthlyTax * 12
+    const incomeAfterTax = income * (1 - effectiveTaxRate)
+
+    // Percent of income
+    const pctPrincipal = (annualPrincipal / incomeAfterTax) * 100
+    const pctInterest = (annualInterest / incomeAfterTax) * 100
+    const pctTax = (annualTax / incomeAfterTax) * 100
+    const pctTotal = pctPrincipal + pctInterest + pctTax
+
+    // Display table
     monthlyBreakout.innerHTML = `
         <tr><th>Mortgage Amount</th><td>$${mortgage.toLocaleString()}</td></tr>
         <tr><th>Monthly Principal & Interest</th><td>$${monthlyPI.toFixed(0)}</td></tr>
         <tr><th>Monthly Property Tax</th><td>$${monthlyTax.toFixed(0)}</td></tr>
         <tr><th>Total Monthly Payment</th><td>$${monthlyTotal.toFixed(0)}</td></tr>
+        <tr><th>% of After-Tax Income to Principal</th><td>${pctPrincipal.toFixed(1)}%</td></tr>
+        <tr><th>% of After-Tax Income to Interest</th><td>${pctInterest.toFixed(1)}%</td></tr>
+        <tr><th>% of After-Tax Income to Property Tax</th><td>${pctTax.toFixed(1)}%</td></tr>
+        <tr><th><b>Total % of After-Tax Income</b></th><td><b>${pctTotal.toFixed(1)}%</b></td></tr
     `
 
     // --- Portfolio Chart Calculation ---
@@ -43,7 +63,6 @@ function calculate() {
     const withSBL = []
     const netWorth = []
 
-    // Reverse compound 5 years before event
     let pBase = portfolioEvent
     let pSBL = portfolioEvent
     const preBase = []
@@ -63,13 +82,11 @@ function calculate() {
         netWorth.push(preSBL[i + 5])
     }
 
-    // Event year
     labels.push(0)
     baseline.push(portfolioEvent)
     withSBL.push(portfolioEvent)
     netWorth.push(portfolioEvent + homePrice)
 
-    // Post-event 5 years
     let base = portfolioEvent
     let sblPortfolio = portfolioEvent
     const sblInterestAnnual = SBL * sblRate
@@ -85,6 +102,7 @@ function calculate() {
         withSBL.push(sblPortfolio)
         netWorth.push(sblPortfolio + homePrice - mortgage)
     }
+   
 
     return { labels, baseline, withSBL, netWorth }
 }
@@ -115,8 +133,8 @@ function renderPortfolioChart() {
     })
 }
 
-// Event Listeners
+// Event listeners
 document.querySelectorAll("input").forEach(el => el.addEventListener('input', renderPortfolioChart))
 
-// Initial Render
+// Initial render
 renderPortfolioChart()
