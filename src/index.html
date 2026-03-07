@@ -12,6 +12,13 @@
     <div class="container">
 
         <h3 class="mb-4">Home Purchase Using Securities Based Loan</h3>
+        <p class="mb-4">
+    This interactive calculator models a home purchase using a Securities-Based Loan (SBL) alongside a traditional mortgage. 
+    It allows you to adjust your home purchase price, portfolio value, SBL fraction, mortgage interest rate, property tax rate, 
+    and effective income tax. The calculator shows how your portfolio grows over time, both before and after the home purchase, 
+    while accounting for SBL interest. It also computes your monthly mortgage payments and breaks down what percentage of your 
+    after-tax income goes toward principal, interest, and property taxes, giving a clear picture of affordability and cash flow.
+</p>
 
         <div class="row">
 
@@ -19,51 +26,51 @@
             <div class="col-md-6">
                 <div class="card p-3 mb-3 bg-secondary">
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Home Purchase Price</label>
                         <input type="range" id="homePrice" min="200000" max="5000000" step="50000">
                         <div>$<span id="homePriceValue"></span></div>
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Portfolio Value</label>
-                        <input class="form-control" id="portfolioValue" value="3000000">
+                        <input class="form-control form-control-sm mb-0" id="portfolioValue" value="3000000">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Growth Rate (%)</label>
-                        <input class="form-control" id="growthRate" value="7">
+                        <input class="form-control form-control-sm mb-0" id="growthRate" value="7">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>SBL Interest Rate (%)</label>
-                        <input class="form-control" id="sblRate" value="5">
+                        <input class="form-control form-control-sm mb-0" id="sblRate" value="5">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>SBL Fraction (%)</label>
                         <input type="range" id="sblFraction" min="0" max="100" step="5">
                         <span id="sblFractionValue"></span>%
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Mortgage Interest Rate (%)</label>
-                        <input class="form-control" id="mortgageRate" value="6">
+                        <input class="form-control form-control-sm mb-0" id="mortgageRate" value="6">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Property Tax Rate (%)</label>
-                        <input class="form-control" id="propertyTaxRate" value="1.25">
+                        <input class="form-control form-control-sm mb-0" id="propertyTaxRate" value="1.25">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Income ($)</label>
-                        <input class="form-control" id="income" value="250000">
+                        <input class="form-control form-control-sm mb-0" id="income" value="250000">
                     </div>
 
-                    <div class="mb-1">
+                    <div class="my-0">
                         <label>Effective Tax Rate (%)</label>
-                        <input class="form-control" id="effectiveTaxRate" value="35">
+                        <input class="form-control form-control-sm mb-0" id="effectiveTaxRate" value="35">
                     </div>
 
                 </div>

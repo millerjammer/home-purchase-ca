@@ -22,8 +22,10 @@ function calculate() {
     const effectiveTaxRate = Number(document.getElementById("effectiveTaxRate").value) / 100
 
     // --- Loan Breakdown ---
-    const SBL = homePrice * sblFraction
-    const mortgage = homePrice - SBL
+    let SBL = portfolioEvent * sblFraction  // fraction 0-1
+    if (SBL > homePrice) SBL = homePrice   // cannot exceed home price
+
+    const mortgage = Math.max(0, homePrice - SBL)
     const mortgageTermMonths = 30 * 12
 
     // Monthly mortgage calculation
@@ -58,51 +60,57 @@ function calculate() {
     `
 
     // --- Portfolio Chart Calculation ---
+    // --- Portfolio Chart Calculation (monthly) ---
     const labels = []
     const baseline = []
     const withSBL = []
     const netWorth = []
 
+    // --- Pre-event 60 months reverse compound ---
     let pBase = portfolioEvent
     let pSBL = portfolioEvent
     const preBase = []
     const preSBL = []
 
-    for (let i = 0; i < 5; i++) {
-        pBase /= (1 + growth)
-        pSBL /= (1 + growth)
+    for (let i = 0; i < 60; i++) {
+        pBase /= Math.pow(1 + growth, 1 / 12)  // monthly reverse compound
+        pSBL /= Math.pow(1 + growth, 1 / 12)
         preBase.unshift(pBase)
         preSBL.unshift(pSBL)
     }
 
-    for (let i = -5; i < 0; i++) {
+    for (let i = -60; i < 0; i++) {
         labels.push(i)
-        baseline.push(preBase[i + 5])
-        withSBL.push(preSBL[i + 5])
-        netWorth.push(preSBL[i + 5])
+        baseline.push(preBase[i + 60])
+        withSBL.push(preSBL[i + 60])
+        netWorth.push(preSBL[i + 60])
     }
 
+    // --- Event month ---
     labels.push(0)
     baseline.push(portfolioEvent)
     withSBL.push(portfolioEvent)
     netWorth.push(portfolioEvent + homePrice)
 
-    let base = portfolioEvent
+    // --- Post-event 60 months ---
+    let base = portfolioEvent   // initialize baseline portfolio at event
     let sblPortfolio = portfolioEvent
-    const sblInterestAnnual = SBL * sblRate
+    const sblInterestMonthly = (SBL * sblRate) / 12
 
-    for (let year = 1; year <= 5; year++) {
-        base *= (1 + growth)
-        const growthAmount = sblPortfolio * growth
-        const netGrowth = growthAmount - sblInterestAnnual
+    for (let month = 1; month <= 60; month++) {
+        const growthAmount = sblPortfolio * Math.pow(1 + growth, 1 / 12) - sblPortfolio
+        const netGrowth = growthAmount - sblInterestMonthly
         sblPortfolio += netGrowth
 
-        labels.push(year)
+        const baseGrowth = base * Math.pow(1 + growth, 1 / 12)
+        base = baseGrowth
+
+        labels.push(month)
         baseline.push(base)
         withSBL.push(sblPortfolio)
         netWorth.push(sblPortfolio + homePrice - mortgage)
     }
-   
+
 
     return { labels, baseline, withSBL, netWorth }
 }
