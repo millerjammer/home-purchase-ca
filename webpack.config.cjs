@@ -7,14 +7,14 @@ module.exports = {
   entry: "./src/home-purchase-ca.js",
 
   output: {
-    filename: "bundle.js",
+    filename: "ca-home-purchase.js",         // rename JS output
     path: path.resolve(__dirname, "dist"),
     clean: true
   },
 
   devServer: {
     static: "./dist",
-    open: true,
+    open: 'home-purchase-ca.html',
     port: 3000,
     hot: true
   },
@@ -26,9 +26,8 @@ module.exports = {
         use: ["style-loader","css-loader"]
       },
       {
-        test: /\.js$/,
+        test: /\.js$/i,
         exclude: /node_modules/,
-        // Let Webpack parse ES modules natively
         type: 'javascript/esm'
       }
     ]
@@ -41,6 +40,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./src/home-purchase-ca.html",
+      filename: "home-purchase-ca.html",      // rename HTML output
       inject: "body"
     })
   ]
