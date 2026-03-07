@@ -13,12 +13,17 @@
 
         <h3 class="mb-4">Home Purchase Using Securities Based Loan</h3>
         <p class="mb-4">
-    This interactive calculator models a home purchase using a Securities-Based Loan (SBL) alongside a traditional mortgage. 
-    It allows you to adjust your home purchase price, portfolio value, SBL fraction, mortgage interest rate, property tax rate, 
-    and effective income tax. The calculator shows how your portfolio grows over time, both before and after the home purchase, 
-    while accounting for SBL interest. It also computes your monthly mortgage payments and breaks down what percentage of your 
-    after-tax income goes toward principal, interest, and property taxes, giving a clear picture of affordability and cash flow.
-</p>
+            This interactive calculator models a home purchase using a Securities-Based Loan (SBL) alongside a
+            traditional mortgage.
+            It allows you to adjust your home purchase price, portfolio value, SBL fraction, mortgage interest rate,
+            property tax rate,
+            and effective income tax. The calculator shows how your portfolio grows over time, both before and after the
+            home purchase,
+            while accounting for SBL interest. It also computes your monthly mortgage payments and breaks down what
+            percentage of your
+            after-tax income goes toward principal, interest, and property taxes, giving a clear picture of
+            affordability and cash flow.
+        </p>
 
         <div class="row">
 
@@ -30,6 +35,12 @@
                         <label>Home Purchase Price</label>
                         <input type="range" id="homePrice" min="200000" max="5000000" step="50000">
                         <div>$<span id="homePriceValue"></span></div>
+                    </div>
+
+                    <div class="my-0">
+                        <label>Downpayment ($)</label>
+                        <input type="range" id="downPayment" min="0" max="3000000" step="50000">
+                        <div>$<span id="downPaymentValue">0</span></div>
                     </div>
 
                     <div class="my-0">

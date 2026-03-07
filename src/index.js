@@ -5,6 +5,8 @@ import { Chart } from 'chart.js/auto'
 const sliderHome = document.getElementById("homePrice")
 const sliderSBL = document.getElementById("sblFraction")
 const sliderValue = document.getElementById("homePriceValue")
+const downPaymentSlider = document.getElementById("downPayment")
+const downPaymentValue = document.getElementById("downPaymentValue")
 const sblValue = document.getElementById("sblFractionValue")
 const monthlyBreakout = document.getElementById("monthlyBreakout")
 
@@ -22,10 +24,17 @@ function calculate() {
     const effectiveTaxRate = Number(document.getElementById("effectiveTaxRate").value) / 100
 
     // --- Loan Breakdown ---
-    let SBL = portfolioEvent * sblFraction  // fraction 0-1
-    if (SBL > homePrice) SBL = homePrice   // cannot exceed home price
+    const downPayment = Number(downPaymentSlider.value)
 
-    const mortgage = Math.max(0, homePrice - SBL)
+    // 1. Amount to finance after downpayment
+    const financedAmount = Math.max(0, homePrice - downPayment)
+
+    // 2. SBL is percentage of portfolio applied, capped at financed amount
+    let SBL = portfolioEvent * sblFraction
+    if (SBL > financedAmount) SBL = financedAmount
+
+    // 3. Mortgage is remainder
+    const mortgage = Math.max(0, financedAmount - SBL)
     const mortgageTermMonths = 30 * 12
 
     // Monthly mortgage calculation
@@ -88,9 +97,11 @@ function calculate() {
 
     // --- Event month ---
     labels.push(0)
+    // Net worth at the event includes: portfolio minus SBL minus downpayment plus home value
+    const netWorthAtEvent = portfolioEvent - SBL - downPayment + homePrice
     baseline.push(portfolioEvent)
     withSBL.push(portfolioEvent)
-    netWorth.push(portfolioEvent + homePrice)
+    netWorth.push(netWorthAtEvent)
 
     // --- Post-event 60 months ---
     let base = portfolioEvent   // initialize baseline portfolio at event
@@ -130,7 +141,7 @@ function renderPortfolioChart() {
             datasets: [
                 { label: 'Portfolio Baseline', data: result.baseline, borderWidth: 3 },
                 { label: 'Portfolio w/ SBL', data: result.withSBL, borderWidth: 3 },
-                { label: 'Net Worth (Portfolio + Home - Mortgage)', data: result.netWorth, borderWidth: 3 }
+                { label: 'Net Worth (Portfolio + Home Equity - Mortgage)', data: result.netWorth, borderWidth: 3 }
             ]
         },
         options: {
@@ -143,6 +154,10 @@ function renderPortfolioChart() {
 
 // Event listeners
 document.querySelectorAll("input").forEach(el => el.addEventListener('input', renderPortfolioChart))
+downPaymentSlider.addEventListener("input", () => {
+    downPaymentValue.innerText = Number(downPaymentSlider.value).toLocaleString()
+    renderPortfolioChart()
+})
 
 // Initial render
 renderPortfolioChart()
