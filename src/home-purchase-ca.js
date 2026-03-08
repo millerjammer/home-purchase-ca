@@ -153,18 +153,41 @@ function renderPortfolioChart() {
     })
 }
 
+///
+/// Below ensures listeners are added after the page loads in both standalone and embedded contexts. In the embedded context, the initCalculator function is called from the parent project and listeners are added at that time. In the standalone context, we add listeners on DOMContentLoaded.
+
 export function initCalculator(container) {
-// This is needed so we can use it in another project and need to render into an existing container div
+    // This is needed so we can use it in another project and need to render into an existing container div
     container.innerHTML = `<div id="calculatorApp"></div>`;
     renderPortfolioChart();
+    addEventListeners(container);
 }
 
-// Event listeners
-document.querySelectorAll("input").forEach(el => el.addEventListener('input', renderPortfolioChart))
-downPaymentSlider.addEventListener("input", () => {
-    downPaymentValue.innerText = Number(downPaymentSlider.value).toLocaleString()
-    renderPortfolioChart()
-})
+export function addEventListeners(container) {
 
-// Initial render
-renderPortfolioChart()
+    // scope inputs to calculator only
+    container.querySelectorAll("input").forEach(el => el.addEventListener("input", renderPortfolioChart));
+
+    const downPaymentSlider = container.querySelector("#downPaymentSlider");
+    const downPaymentValue = container.querySelector("#downPaymentValue");
+
+    if (downPaymentSlider && downPaymentValue) {
+        downPaymentSlider.addEventListener("input", () => {
+            downPaymentValue.innerText =
+                Number(downPaymentSlider.value).toLocaleString();
+
+            renderPortfolioChart();
+        });
+    }
+}
+
+// Add event listeners and render chart on page load
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        addEventListeners(document);
+        renderPortfolioChart();
+    });
+} else {
+    addEventListeners(document);
+    renderPortfolioChart();
+}
