@@ -2,12 +2,11 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  mode: "development",
-
+  
   entry: "./src/home-purchase-ca.js",
 
   output: {
-    filename: "ca-home-purchase.js",         // rename JS output
+    filename: "home-purchase-ca.bundle.js",         // rename JS output
     path: path.resolve(__dirname, "dist"),
     clean: true
   },
