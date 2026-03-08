@@ -2,61 +2,53 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import './dark.css'
 import { Chart } from 'chart.js/auto'
 
-const sliderHome = document.getElementById("homePrice")
-const sliderSBL = document.getElementById("sblFraction")
-const sliderValue = document.getElementById("homePriceValue")
-const downPaymentSlider = document.getElementById("downPayment")
-const downPaymentValue = document.getElementById("downPaymentValue")
-const sblValue = document.getElementById("sblFractionValue")
-const monthlyBreakout = document.getElementById("monthlyBreakout")
+let portfolioChart = null;
 
-let portfolioChart
+// --- Core calculation function ---
+function calculate(container) {
+    const sliderHome = container.querySelector("#homePrice");
+    const sliderSBL = container.querySelector("#sblFraction");
+    const sliderValue = container.querySelector("#homePriceValue");
+    const downPaymentSlider = container.querySelector("#downPayment");
+    const downPaymentValue = container.querySelector("#downPaymentValue");
+    const sblValue = container.querySelector("#sblFractionValue");
+    const monthlyBreakout = container.querySelector("#monthlyBreakout");
 
-function calculate() {
-    const homePrice = Number(sliderHome.value)
-    const portfolioEvent = Number(document.getElementById("portfolioValue").value)
-    const growth = Number(document.getElementById("growthRate").value) / 100
-    const sblRate = Number(document.getElementById("sblRate").value) / 100
-    const mortgageRate = Number(document.getElementById("mortgageRate").value) / 100
-    const propertyTaxRate = Number(document.getElementById("propertyTaxRate").value) / 100
-    const sblFraction = Number(sliderSBL.value) / 100
-    const income = Number(document.getElementById("income").value)
-    const effectiveTaxRate = Number(document.getElementById("effectiveTaxRate").value) / 100
+    const homePrice = Number(sliderHome.value);
+    const portfolioEvent = Number(container.querySelector("#portfolioValue").value);
+    const growth = Number(container.querySelector("#growthRate").value) / 100;
+    const sblRate = Number(container.querySelector("#sblRate").value) / 100;
+    const mortgageRate = Number(container.querySelector("#mortgageRate").value) / 100;
+    const propertyTaxRate = Number(container.querySelector("#propertyTaxRate").value) / 100;
+    const sblFraction = Number(sliderSBL.value) / 100;
+    const income = Number(container.querySelector("#income").value);
+    const effectiveTaxRate = Number(container.querySelector("#effectiveTaxRate").value) / 100;
 
-    // --- Loan Breakdown ---
-    const downPayment = Number(downPaymentSlider.value)
+    const downPayment = Number(downPaymentSlider.value);
 
-    // 1. Amount to finance after downpayment
-    const financedAmount = Math.max(0, homePrice - downPayment)
+    const financedAmount = Math.max(0, homePrice - downPayment);
 
-    // 2. SBL is percentage of portfolio applied, capped at financed amount
-    let SBL = portfolioEvent * sblFraction
-    if (SBL > financedAmount) SBL = financedAmount
+    let SBL = portfolioEvent * sblFraction;
+    if (SBL > financedAmount) SBL = financedAmount;
 
-    // 3. Mortgage is remainder
-    const mortgage = Math.max(0, financedAmount - SBL)
-    const mortgageTermMonths = 30 * 12
+    const mortgage = Math.max(0, financedAmount - SBL);
+    const mortgageTermMonths = 30 * 12;
+    const monthlyPI = mortgage * (mortgageRate / 12) / (1 - Math.pow(1 + mortgageRate / 12, -mortgageTermMonths));
+    const monthlyInterest = mortgage * mortgageRate / 12;
+    const monthlyPrincipal = monthlyPI - monthlyInterest;
+    const monthlyTax = homePrice * propertyTaxRate / 12;
+    const monthlyTotal = monthlyPI + monthlyTax;
 
-    // Monthly mortgage calculation
-    const monthlyPI = mortgage * (mortgageRate / 12) / (1 - Math.pow(1 + mortgageRate / 12, -mortgageTermMonths))
-    const monthlyInterest = mortgage * mortgageRate / 12
-    const monthlyPrincipal = monthlyPI - monthlyInterest
-    const monthlyTax = homePrice * propertyTaxRate / 12
-    const monthlyTotal = monthlyPI + monthlyTax
+    const annualPrincipal = monthlyPrincipal * 12;
+    const annualInterest = monthlyInterest * 12;
+    const annualTax = monthlyTax * 12;
+    const incomeAfterTax = income * (1 - effectiveTaxRate);
 
-    // Annualized
-    const annualPrincipal = monthlyPrincipal * 12
-    const annualInterest = monthlyInterest * 12
-    const annualTax = monthlyTax * 12
-    const incomeAfterTax = income * (1 - effectiveTaxRate)
+    const pctPrincipal = (annualPrincipal / incomeAfterTax) * 100;
+    const pctInterest = (annualInterest / incomeAfterTax) * 100;
+    const pctTax = (annualTax / incomeAfterTax) * 100;
+    const pctTotal = pctPrincipal + pctInterest + pctTax;
 
-    // Percent of income
-    const pctPrincipal = (annualPrincipal / incomeAfterTax) * 100
-    const pctInterest = (annualInterest / incomeAfterTax) * 100
-    const pctTax = (annualTax / incomeAfterTax) * 100
-    const pctTotal = pctPrincipal + pctInterest + pctTax
-
-    // Display table
     monthlyBreakout.innerHTML = `
         <tr><th>Mortgage Amount</th><td>$${mortgage.toLocaleString()}</td></tr>
         <tr><th>Monthly Principal & Interest</th><td>$${monthlyPI.toFixed(0)}</td></tr>
@@ -65,74 +57,73 @@ function calculate() {
         <tr><th>% of After-Tax Income to Principal</th><td>${pctPrincipal.toFixed(1)}%</td></tr>
         <tr><th>% of After-Tax Income to Interest</th><td>${pctInterest.toFixed(1)}%</td></tr>
         <tr><th>% of After-Tax Income to Property Tax</th><td>${pctTax.toFixed(1)}%</td></tr>
-        <tr><th><b>Total % of After-Tax Income</b></th><td><b>${pctTotal.toFixed(1)}%</b></td></tr
-    `
+        <tr><th><b>Total % of After-Tax Income</b></th><td><b>${pctTotal.toFixed(1)}%</b></td></tr>
+    `;
 
-    // --- Portfolio Chart Calculation ---
-    // --- Portfolio Chart Calculation (monthly) ---
-    const labels = []
-    const baseline = []
-    const withSBL = []
-    const netWorth = []
+    // --- Portfolio chart ---
+    const labels = [];
+    const baseline = [];
+    const withSBL = [];
+    const netWorth = [];
 
-    // --- Pre-event 60 months reverse compound ---
-    let pBase = portfolioEvent
-    let pSBL = portfolioEvent
-    const preBase = []
-    const preSBL = []
+    let pBase = portfolioEvent;
+    let pSBL = portfolioEvent;
+    const preBase = [];
+    const preSBL = [];
 
     for (let i = 0; i < 60; i++) {
-        pBase /= Math.pow(1 + growth, 1 / 12)  // monthly reverse compound
-        pSBL /= Math.pow(1 + growth, 1 / 12)
-        preBase.unshift(pBase)
-        preSBL.unshift(pSBL)
+        pBase /= Math.pow(1 + growth, 1 / 12);
+        pSBL /= Math.pow(1 + growth, 1 / 12);
+        preBase.unshift(pBase);
+        preSBL.unshift(pSBL);
     }
 
     for (let i = -60; i < 0; i++) {
-        labels.push(i)
-        baseline.push(preBase[i + 60])
-        withSBL.push(preSBL[i + 60])
-        netWorth.push(preSBL[i + 60])
+        labels.push(i);
+        baseline.push(preBase[i + 60]);
+        withSBL.push(preSBL[i + 60]);
+        netWorth.push(preSBL[i + 60]);
     }
 
-    // --- Event month ---
-    labels.push(0)
-    // Net worth at the event includes: portfolio minus SBL minus downpayment plus home value
-    const netWorthAtEvent = portfolioEvent - SBL - downPayment + homePrice
-    baseline.push(portfolioEvent)
-    withSBL.push(portfolioEvent)
-    netWorth.push(netWorthAtEvent)
+    labels.push(0);
+    const netWorthAtEvent = portfolioEvent - SBL - downPayment + homePrice;
+    baseline.push(portfolioEvent);
+    withSBL.push(portfolioEvent);
+    netWorth.push(netWorthAtEvent);
 
-    // --- Post-event 60 months ---
-    let base = portfolioEvent   // initialize baseline portfolio at event
-    let sblPortfolio = portfolioEvent
-    const sblInterestMonthly = (SBL * sblRate) / 12
+    let base = portfolioEvent;
+    let sblPortfolio = portfolioEvent;
+    const sblInterestMonthly = (SBL * sblRate) / 12;
 
     for (let month = 1; month <= 60; month++) {
-        const growthAmount = sblPortfolio * Math.pow(1 + growth, 1 / 12) - sblPortfolio
-        const netGrowth = growthAmount - sblInterestMonthly
-        sblPortfolio += netGrowth
+        const growthAmount = sblPortfolio * Math.pow(1 + growth, 1 / 12) - sblPortfolio;
+        const netGrowth = growthAmount - sblInterestMonthly;
+        sblPortfolio += netGrowth;
 
-        const baseGrowth = base * Math.pow(1 + growth, 1 / 12)
-        base = baseGrowth
+        const baseGrowth = base * Math.pow(1 + growth, 1 / 12);
+        base = baseGrowth;
 
-        labels.push(month)
-        baseline.push(base)
-        withSBL.push(sblPortfolio)
-        netWorth.push(sblPortfolio + homePrice - mortgage)
+        labels.push(month);
+        baseline.push(base);
+        withSBL.push(sblPortfolio);
+        netWorth.push(sblPortfolio + homePrice - mortgage);
     }
 
-
-    return { labels, baseline, withSBL, netWorth }
+    return { labels, baseline, withSBL, netWorth };
 }
 
-function renderPortfolioChart() {
-    sliderValue.innerText = Number(sliderHome.value).toLocaleString()
-    sblValue.innerText = Number(sliderSBL.value)
+function renderPortfolioChart(container) {
+    const sliderHome = container.querySelector("#homePrice");
+    const sliderSBL = container.querySelector("#sblFraction");
+    const sliderValue = container.querySelector("#homePriceValue");
+    const sblValue = container.querySelector("#sblFractionValue");
 
-    const result = calculate()
-    const ctx = document.getElementById("chart")
-    if (portfolioChart) portfolioChart.destroy()
+    sliderValue.innerText = Number(sliderHome.value).toLocaleString();
+    sblValue.innerText = Number(sliderSBL.value);
+
+    const result = calculate(container);
+    const ctx = container.querySelector("#chart");
+    if (portfolioChart) portfolioChart.destroy();
 
     portfolioChart = new Chart(ctx, {
         type: 'line',
@@ -150,44 +141,37 @@ function renderPortfolioChart() {
             plugins: { legend: { labels: { color: 'white' } } },
             scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } }
         }
-    })
+    });
 }
 
-///
-/// Below ensures listeners are added after the page loads in both standalone and embedded contexts. In the embedded context, the initCalculator function is called from the parent project and listeners are added at that time. In the standalone context, we add listeners on DOMContentLoaded.
-
+// --- Public API ---
 export function initCalculator(container) {
-    // This is needed so we can use it in another project and need to render into an existing container div
-    container.innerHTML = `<div id="calculatorApp"></div>`;
-    renderPortfolioChart();
+    if (!container) return;
+    renderPortfolioChart(container);
     addEventListeners(container);
 }
 
 export function addEventListeners(container) {
+    if (!container) return;
 
-    // scope inputs to calculator only
-    container.querySelectorAll("input").forEach(el => el.addEventListener("input", renderPortfolioChart));
+    container.querySelectorAll("input").forEach(el =>
+        el.addEventListener("input", () => renderPortfolioChart(container))
+    );
 
-    const downPaymentSlider = container.querySelector("#downPaymentSlider");
+    const downPaymentSlider = container.querySelector("#downPayment");
     const downPaymentValue = container.querySelector("#downPaymentValue");
 
     if (downPaymentSlider && downPaymentValue) {
         downPaymentSlider.addEventListener("input", () => {
-            downPaymentValue.innerText =
-                Number(downPaymentSlider.value).toLocaleString();
-
-            renderPortfolioChart();
+            downPaymentValue.innerText = Number(downPaymentSlider.value).toLocaleString();
+            renderPortfolioChart(container);
         });
     }
 }
 
-// Add event listeners and render chart on page load
-if (document.readyState === "loading") {
+// --- Auto-init for standalone ---
+if (document.getElementById("homePrice")) {
     document.addEventListener("DOMContentLoaded", () => {
-        addEventListeners(document);
-        renderPortfolioChart();
+        initCalculator(document);
     });
-} else {
-    addEventListeners(document);
-    renderPortfolioChart();
 }
