@@ -2,13 +2,17 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  
+
   entry: "./src/home-purchase-ca.js",
 
   output: {
     filename: "home-purchase-ca.bundle.js",         // rename JS output
     path: path.resolve(__dirname, "dist"),
-    clean: true
+    clean: true,
+    library: {
+      name: "HomePurchaseCA",
+      type: "umd"
+    }
   },
 
   devServer: {
@@ -22,7 +26,7 @@ module.exports = {
     rules: [
       {
         test: /\.css$/i,
-        use: ["style-loader","css-loader"]
+        use: ["style-loader", "css-loader"]
       },
       {
         test: /\.js$/i,

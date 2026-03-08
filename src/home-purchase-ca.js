@@ -153,6 +153,12 @@ function renderPortfolioChart() {
     })
 }
 
+export function initCalculator(container) {
+// This is needed so we can use it in another project and need to render into an existing container div
+    container.innerHTML = `<div id="calculatorApp"></div>`;
+    renderPortfolioChart();
+}
+
 // Event listeners
 document.querySelectorAll("input").forEach(el => el.addEventListener('input', renderPortfolioChart))
 downPaymentSlider.addEventListener("input", () => {
